@@ -6,16 +6,27 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "antd": "^4.22.8",
+    "axios": "^0.27.2",
+    "cors": "^2.8.5",
+    "got": "^12.3.1",
+    "he": "^1.2.0",
+    "needle": "^3.1.0",
+    "nodemon": "^2.0.19",
+    "oauth-1.0a": "^2.2.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "nodemon src/server.js",
+    "start-react": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "app-deploy": "gcloud app deploy",
+    "run-deploy": "gcloud builds submit --pack image=[IMAGE] C:/Users/SimchaPodolsky/Desktop/OwnProject/read-twitter` and `gcloud run deploy read-twitter --image [IMAGE]"
   },
   "eslintConfig": {
     "extends": [
