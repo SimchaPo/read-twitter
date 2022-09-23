@@ -2,6 +2,8 @@ require("dotenv").config();
 
 var express = require("express");
 var path = require("path");
+require("twitter-url-direct");
+const tinyurl = require("tinyurl-api");
 
 var app = express();
 var cors = require("cors");
@@ -27,9 +29,14 @@ const endpointURLTweets = "https://api.twitter.com/2/tweets";
 
 const endpointURLSearch = `https://api.twitter.com/2/tweets/search/recent`;
 
+const getTweetUrl = (username, id) => {
+  return `https://twitter.com/${username}/status/${id}`;
+};
+
 async function getRequest(
   link = "https://twitter.com/DontShowYourCat/status/1564071707245264897"
 ) {
+  console.log(link);
   const startSlice = link.lastIndexOf("/") + 1;
   const endSlice = link.lastIndexOf("?");
 
@@ -57,6 +64,8 @@ async function getRequest(
 
   let { name, username } = firstRes.body.includes?.users?.[0];
 
+  let urlsForVideos = [];
+
   const mediaData = firstRes.body?.includes?.media;
 
   params = {
@@ -66,58 +75,47 @@ async function getRequest(
     "media.fields": "preview_image_url,type,url",
   };
 
-  let res = await needle("get", endpointURLSearch, params, {
-    headers: {
-      "User-Agent": "v2TweetLookupJS",
-      authorization: `Bearer ${token}`,
-    },
-  });
-
   let text = [];
   let mediaUrls = [];
+  let res;
 
-  res.body?.data?.forEach((element) => {
-    text.unshift(element.text);
-  });
-
-  res.body?.includes?.media?.forEach((element) => {
-    mediaUrls.unshift(element);
-  });
-
-  console.log(res.body); //.includes?.media);
-
-  // console.log(res.body);
-
-  while (res.body?.meta?.next_token) {
-    // console.log(res.body?.meta);
-    // params.since_id = res.body.meta.newest_id;
-    params.next_token = res.body.meta.next_token;
-    // console.log(params);
+  do {
     res = await needle("get", endpointURLSearch, params, {
       headers: {
         "User-Agent": "v2TweetLookupJS",
         authorization: `Bearer ${token}`,
       },
     });
+    if (res.body?.data)
+      for (const element of res.body?.data) {
+        await manageElement(
+          element,
+          username,
+          urlsForVideos,
+          text,
+          res.body?.includes?.media
+        );
+      }
 
-    res.body?.data?.forEach((element) => {
-      text.unshift(element.text);
+    res.body?.includes?.media?.forEach((element) => {
+      mediaUrls.unshift(element);
     });
 
-    if (res.body?.includes?.media)
-      mediaUrls.unshift(...res.body?.includes?.media);
+    params.next_token = res.body?.meta?.next_token;
+  } while (res.body?.meta?.next_token);
 
-    // res.body?.includes?.media?.forEach((element) => {
-    //   console.log(element);
-    //   mediaUrls.unshift(element);
-    // });
-  }
-
-  text.unshift(firstRes.body?.data?.text);
   if (mediaData) mediaUrls.unshift(...mediaData);
+  await manageElement(
+    firstRes.body?.data,
+    username,
+    urlsForVideos,
+    text,
+    firstRes.body?.includes?.media
+  );
+
+  // text.unshift(firstRes.body?.data?.text);
 
   text = text.join("\n\n");
-  console.log(mediaUrls);
 
   if (res.body) {
     return {
@@ -136,7 +134,7 @@ app.get("/", function (req, res) {
 });
 
 app.get("/tcs", async function (req, res) {
-  console.log(req.query);
+  // console.log(req.query);
   let response = await getRequest(req.query.link);
   res.send(response);
 });
@@ -153,3 +151,34 @@ app.use(express.static("dist"));
 app.listen(8080, function () {
   console.log("Example app listening on port 8080!");
 });
+async function manageElement(
+  element,
+  username,
+  urlsForVideos,
+  text,
+  media = null
+) {
+  if (element.attachments) {
+    const media_keys = element.attachments.media_keys;
+    const video_media_keys = media
+      .filter((med) => med.type === "video")
+      .map((med) => med.media_key);
+    const found = media_keys.some((r) => video_media_keys.indexOf(r) >= 0);
+    if (found) {
+      let tweetUrl = getTweetUrl(username, element.id);
+      urlsForVideos.push({
+        media_keys: element.attachments.media_keys,
+        tweetUrl,
+      });
+      let videoUrl = await twitterGetUrl(tweetUrl);
+      if (videoUrl.found && videoUrl.type.includes("video")) {
+        if (videoUrl.download?.[0]?.url) {
+          const url = await tinyurl(videoUrl.download?.[0]?.url);
+          let downloadText = `(Download attached video:\n${url} )`;
+          text.unshift(downloadText);
+        }
+      }
+    }
+  }
+  text.unshift(element.text);
+}

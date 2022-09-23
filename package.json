@@ -17,6 +17,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
+    "tinyurl-api": "^1.0.1",
+    "twitter-url-direct": "^1.0.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -26,7 +28,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "app-deploy": "gcloud app deploy",
-    "run-deploy": "gcloud builds submit --pack image=[IMAGE] C:/Users/SimchaPodolsky/Desktop/OwnProject/read-twitter` and `gcloud run deploy read-twitter --image [IMAGE]"
+    "run-deploy": "gcloud run deploy --source"
   },
   "eslintConfig": {
     "extends": [
