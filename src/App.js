@@ -1,5 +1,5 @@
 import "./App.css";
-import "antd/dist/antd.css";
+import "antd/dist/antd.min.css";
 import { useState } from "react";
 import axios from "axios";
 import {
