@@ -18,7 +18,7 @@
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "tinyurl-api": "^1.0.1",
-    "twitter-url-direct": "^1.0.5",
+    "twitter-url-direct": "^1.0.6",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
