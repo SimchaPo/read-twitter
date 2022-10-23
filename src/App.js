@@ -18,6 +18,7 @@ import Grid from "antd/lib/card/Grid";
 import he from "he";
 import { config } from "./Constants";
 import { Birds } from "./Birds";
+import { ShareAltOutlined } from "@ant-design/icons";
 
 const { Paragraph, Title } = Typography;
 
@@ -63,6 +64,44 @@ function App() {
     });
   };
 
+  const blobUrlToFile = (blobUrl, index) =>
+    new Promise((resolve) => {
+      console.log(blobUrl);
+      fetch(blobUrl.url).then((res) => {
+        res.blob().then((blob) => {
+          // please change the file.extension with something more meaningful
+          // or create a utility function to parse from URL
+          const file = new File([blob], `${index}.jpg`, { type: blob.type });
+          resolve(file);
+        });
+      });
+    });
+
+  async function onShare() {
+    const title = document.title;
+    const url = document.querySelector("link[rel=canonical]")
+      ? document.querySelector("link[rel=canonical]").href
+      : document.location.href;
+    const text = getTextForShare;
+    let files = await Promise.all(
+      mediaData.map((obj, index) => blobUrlToFile(obj, index))
+    );
+    console.log(files);
+    try {
+      await navigator.share({
+        title,
+        url,
+        text,
+        files,
+      });
+    } catch (err) {
+      // alert(`Couldn't share ${err}`);
+    }
+  }
+
+  const getTextForShare = `Extract By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
+    form.getFieldValue("Tweet Url")?.split("?")[0]
+  }`;
   return (
     <Grid
       style={{
@@ -105,16 +144,16 @@ function App() {
                 },
               ]}
             >
-              <Input placeholder="insert tweet url" allowClear />
+              <Input placeholder="insert main tweet url" allowClear />
             </Form.Item>
             <Form.Item>
               <Space>
                 <Button type="primary" htmlType="submit">
-                  Get Tweet
+                  Get Thread
                 </Button>
-                <Button htmlType="button" onClick={onFill}>
+                {/* <Button htmlType="button" onClick={onFill}>
                   Test Me
-                </Button>
+                </Button> */}
               </Space>
             </Form.Item>
           </Form>
@@ -130,17 +169,29 @@ function App() {
               <Row>
                 <Col span={24}>
                   {data.length > 0 && (
-                    <Paragraph
-                      copyable={{
-                        format: "text/plain",
-                        text: `Extract By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${form.getFieldValue(
-                          "Tweet Url"
-                        )}`,
-                      }}
-                      style={{ whiteSpace: "pre-wrap" }}
-                    >
-                      {data}
-                    </Paragraph>
+                    <>
+                      <Row>
+                        <Button
+                          icon={<ShareAltOutlined />}
+                          type="link"
+                          htmlType="button"
+                          onClick={onShare}
+                        >
+                          Share
+                        </Button>
+                      </Row>
+                      <Row>
+                        <Paragraph
+                          copyable={{
+                            format: "text/plain",
+                            text: getTextForShare,
+                          }}
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {data}
+                        </Paragraph>
+                      </Row>
+                    </>
                   )}
                 </Col>
               </Row>

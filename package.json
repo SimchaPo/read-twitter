@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ant-design/icons": "^4.7.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
@@ -27,7 +28,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "app-deploy": "gcloud app deploy",
+    "app-deploy": "gcloud app deploy -q --project read-twitter-project",
     "run-deploy": "gcloud run deploy --source"
   },
   "eslintConfig": {
