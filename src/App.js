@@ -86,13 +86,18 @@ function App() {
     let files = [];
     if (type === "text") {
       text = getTextForShare;
+
       files.push(
-        await blobUrlToFile(
-          {
-            url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
-          },
-          "general"
-        )
+        mediaData?.length === 1
+          ? await Promise.all(
+              mediaData.map((obj, index) => blobUrlToFile(obj, index))
+            )
+          : await blobUrlToFile(
+              {
+                url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
+              },
+              "general"
+            )
       );
     }
     if (type === "files") {
@@ -192,16 +197,18 @@ function App() {
                           htmlType="button"
                           onClick={() => onShare("text")}
                         >
-                          Share Text
+                          {`Share ${mediaData?.length >= 2 ? "Text" : ""}`}
                         </Button>
-                        <Button
-                          icon={<ShareAltOutlined />}
-                          type="link"
-                          htmlType="button"
-                          onClick={() => onShare("files")}
-                        >
-                          Share Images
-                        </Button>
+                        {mediaData?.length >= 2 && (
+                          <Button
+                            icon={<ShareAltOutlined />}
+                            type="link"
+                            htmlType="button"
+                            onClick={() => onShare("files")}
+                          >
+                            Share Images
+                          </Button>
+                        )}
                       </Row>
                       <Row>
                         <Paragraph
