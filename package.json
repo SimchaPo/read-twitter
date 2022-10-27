@@ -29,7 +29,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "app-deploy": "gcloud app deploy -q --project read-twitter-project",
-    "run-deploy": "gcloud run deploy --source"
+    "run-deploy": "gcloud run deploy read-twitter --source ."
   },
   "eslintConfig": {
     "extends": [

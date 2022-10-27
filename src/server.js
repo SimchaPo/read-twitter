@@ -68,10 +68,13 @@ async function getRequest(
 
   const mediaData = firstRes.body?.includes?.media;
 
+  let tinyurlVideo = [];
+
   params = {
     query: `conversation_id:${twittId} from:${username} to:${username}`,
     expansions: "author_id,attachments.media_keys",
-    "tweet.fields": "in_reply_to_user_id,author_id,created_at,conversation_id",
+    "tweet.fields":
+      "in_reply_to_user_id,author_id,entities,created_at,conversation_id",
     "media.fields": "preview_image_url,type,url",
   };
 
@@ -93,7 +96,8 @@ async function getRequest(
           username,
           urlsForVideos,
           text,
-          res.body?.includes?.media
+          res.body?.includes?.media,
+          tinyurlVideo
         );
       }
 
@@ -110,7 +114,8 @@ async function getRequest(
     username,
     urlsForVideos,
     text,
-    firstRes.body?.includes?.media
+    firstRes.body?.includes?.media,
+    tinyurlVideo
   );
 
   // text.unshift(firstRes.body?.data?.text);
@@ -123,6 +128,7 @@ async function getRequest(
       mediaData: mediaUrls.filter((media) => media.url),
       username,
       name,
+      tinyurlVideo,
     };
   } else {
     throw new Error("Unsuccessful request");
@@ -156,7 +162,8 @@ async function manageElement(
   username,
   urlsForVideos,
   text,
-  media = null
+  media = null,
+  tinyurlVideo
 ) {
   if (element.attachments) {
     const media_keys = element.attachments.media_keys;
@@ -173,12 +180,21 @@ async function manageElement(
       let videoUrl = await twitterGetUrl(tweetUrl);
       if (videoUrl.found && videoUrl.type.includes("video")) {
         if (videoUrl.download?.[0]?.url) {
-          const url = await tinyurl(videoUrl.download?.[0]?.url);
-          let downloadText = `(Download attached video:\n${url} )`;
-          text.unshift(downloadText);
+          tinyurlVideo.push(videoUrl.download?.[0]?.url);
+          // const url = await tinyurl(videoUrl.download?.[0]?.url);
+          // let downloadText = `(Download attached video:\n${url} )`;
+          // text.unshift(downloadText);
         }
       }
     }
   }
+  // console.log(elemen\t, element.entities?.urls);
+  const urls = element?.entities?.urls;
+  urls?.forEach((url) => {
+    element.text = element.text.replace(
+      url.url,
+      url.media_key ? "" : url.expanded_url
+    );
+  });
   text.unshift(element.text);
 }

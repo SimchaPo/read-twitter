@@ -26,6 +26,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState("");
   const [mediaData, setMediaData] = useState([]);
+  const [tinyurlVideo, settinyurlVideo] = useState([]);
   const [userName, setUserName] = useState();
   const [name, setName] = useState();
   const serverUrl = config.url.SERVER_URL;
@@ -40,6 +41,7 @@ function App() {
         // console.log(JSON.stringify(res.data));
         setData(he.decode(res.data.text));
         setMediaData(res.data.mediaData);
+        settinyurlVideo(res.data.tinyurlVideo);
         setUserName(res.data.username);
         setName(res.data.name);
         setLoading(false);
@@ -64,14 +66,14 @@ function App() {
     });
   };
 
-  const blobUrlToFile = (blobUrl, index) =>
+  const blobUrlToFile = (blobUrl, index, ext = "jpg") =>
     new Promise((resolve) => {
       console.log(blobUrl);
       fetch(blobUrl.url).then((res) => {
         res.blob().then((blob) => {
           // please change the file.extension with something more meaningful
           // or create a utility function to parse from URL
-          const file = new File([blob], `${index}.jpg`, { type: blob.type });
+          const file = new File([blob], `${index}.${ext}`, { type: blob.type });
           resolve(file);
         });
       });
@@ -87,23 +89,30 @@ function App() {
     if (type === "text") {
       text = getTextForShare;
 
-      files.push(
-        mediaData?.length === 1
-          ? await Promise.all(
-              mediaData.map((obj, index) => blobUrlToFile(obj, index))
-            )
-          : await blobUrlToFile(
-              {
-                url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
-              },
-              "general"
-            )
-      );
+      if (mediaData?.length >= 1) {
+        files.push(await blobUrlToFile(mediaData[0], "single"));
+      } else if (tinyurlVideo?.length >= 1) {
+        files.push(
+          await blobUrlToFile({ url: tinyurlVideo[0] }, "single", "mp4")
+        );
+      } else if (text.length > 2300) {
+        files.push(
+          await blobUrlToFile(
+            {
+              url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
+            },
+            "general"
+          )
+        );
+      }
     }
     if (type === "files") {
-      files = await Promise.all(
-        mediaData.map((obj, index) => blobUrlToFile(obj, index))
-      );
+      files = await Promise.all([
+        ...tinyurlVideo.map((obj, index) =>
+          blobUrlToFile({ url: obj }, index, "mp4")
+        ),
+        ...mediaData.map((obj, index) => blobUrlToFile(obj, index)),
+      ]);
     }
     // console.log(files);
     try {
@@ -199,14 +208,17 @@ function App() {
                         >
                           {`Share ${mediaData?.length >= 2 ? "Text" : ""}`}
                         </Button>
-                        {mediaData?.length >= 2 && (
+                        {(mediaData?.length >= 2 ||
+                          tinyurlVideo?.length >= 2) && (
                           <Button
                             icon={<ShareAltOutlined />}
                             type="link"
                             htmlType="button"
                             onClick={() => onShare("files")}
                           >
-                            Share Images
+                            {`Share ${mediaData?.length >= 2 ? "Images" : ""} ${
+                              tinyurlVideo?.length >= 2 ? "Videos" : ""
+                            }`}
                           </Button>
                         )}
                       </Row>
@@ -216,7 +228,7 @@ function App() {
                             format: "text/plain",
                             text: getTextForShare,
                           }}
-                          style={{ whiteSpace: "pre-wrap" }}
+                          style={{ whiteSpace: "pre-wrap", direction: "rtl" }}
                         >
                           {data}
                         </Paragraph>
