@@ -118,7 +118,6 @@ function App() {
     try {
       let shareObj = {
         title,
-        // url,
         text,
         files,
       };
@@ -128,7 +127,7 @@ function App() {
     }
   }
 
-  const getTextForShare = `Extract By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
+  const getTextForShare = `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
     form.getFieldValue("Tweet Url")?.split("?")[0]
   }`;
   return (
