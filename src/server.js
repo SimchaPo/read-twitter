@@ -33,9 +33,7 @@ const getTweetUrl = (username, id) => {
   return `https://twitter.com/${username}/status/${id}`;
 };
 
-async function getRequest(
-  link = "https://twitter.com/DontShowYourCat/status/1564071707245264897"
-) {
+async function getRequest(link) {
   console.log(link);
   const startSlice = link.lastIndexOf("/") + 1;
   const endSlice = link.lastIndexOf("?");
@@ -141,8 +139,13 @@ app.get("/", function (req, res) {
 
 app.get("/tcs", async function (req, res) {
   // console.log(req.query);
-  let response = await getRequest(req.query.link);
-  res.send(response);
+  try {
+    let response = await getRequest(req.query.link);
+    res.send(response);
+  } catch (error) {
+    console.error(error);
+    res.status(400).send();
+  }
 });
 
 // Handle 404 - Keep this as a last route

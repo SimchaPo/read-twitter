@@ -1,6 +1,6 @@
 import "./App.css";
 import "antd/dist/antd.min.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Button,
@@ -24,11 +24,14 @@ const { Paragraph, Title } = Typography;
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const [data, setData] = useState("");
   const [mediaData, setMediaData] = useState([]);
   const [tinyurlVideo, settinyurlVideo] = useState([]);
   const [userName, setUserName] = useState();
   const [name, setName] = useState();
+  const [singleFile, setSingleFile] = useState([]);
+  const [allFiles, setAllFiles] = useState([]);
   const serverUrl = config.url.SERVER_URL;
 
   const handleSubmit = async (url) => {
@@ -38,12 +41,21 @@ function App() {
         params: { link: url },
       })
       .then((res) => {
-        // console.log(JSON.stringify(res.data));
         setData(he.decode(res.data.text));
         setMediaData(res.data.mediaData);
         settinyurlVideo(res.data.tinyurlVideo);
         setUserName(res.data.username);
         setName(res.data.name);
+      })
+      .catch(() => {
+        setData("");
+        setMediaData([]);
+        settinyurlVideo([]);
+        setUserName();
+        setName();
+        message.error("Problem with URL");
+      })
+      .finally(() => {
         setLoading(false);
       });
   };
@@ -59,20 +71,10 @@ function App() {
     message.error("Submit failed!");
   };
 
-  const onFill = () => {
-    form.setFieldsValue({
-      "Tweet Url":
-        "https://twitter.com/grabbou/status/1567486204349644801?s=20&t=k6hTGIaC4Qrt_yaT2cN7UQ",
-    });
-  };
-
   const blobUrlToFile = (blobUrl, index, ext = "jpg") =>
     new Promise((resolve) => {
-      console.log(blobUrl);
       fetch(blobUrl.url).then((res) => {
         res.blob().then((blob) => {
-          // please change the file.extension with something more meaningful
-          // or create a utility function to parse from URL
           const file = new File([blob], `${index}.${ext}`, { type: blob.type });
           resolve(file);
         });
@@ -81,55 +83,60 @@ function App() {
 
   async function onShare(type) {
     const title = document.title;
-    const url = document.querySelector("link[rel=canonical]")
-      ? document.querySelector("link[rel=canonical]").href
-      : document.location.href;
     let text;
     let files = [];
     if (type === "text") {
       text = getTextForShare;
 
-      if (mediaData?.length >= 1) {
-        files.push(await blobUrlToFile(mediaData[0], "single"));
-      } else if (tinyurlVideo?.length >= 1) {
-        files.push(
-          await blobUrlToFile({ url: tinyurlVideo[0] }, "single", "mp4")
-        );
-      } else if (text.length > 2300) {
-        files.push(
-          await blobUrlToFile(
-            {
-              url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
-            },
-            "general"
-          )
-        );
-      }
+      files = singleFile;
     }
     if (type === "files") {
-      files = await Promise.all([
-        ...tinyurlVideo.map((obj, index) =>
-          blobUrlToFile({ url: obj }, index, "mp4")
-        ),
-        ...mediaData.map((obj, index) => blobUrlToFile(obj, index)),
-      ]);
+      files = allFiles;
     }
-    // console.log(files);
     try {
       let shareObj = {
-        title,
+        // title,
         text,
         files,
       };
       await navigator.share(shareObj);
-    } catch (err) {
-      // alert(`Couldn't share ${err}`);
-    }
+    } catch (err) {}
   }
 
   const getTextForShare = `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
     form.getFieldValue("Tweet Url")?.split("?")[0]
   }`;
+
+  useEffect(() => {
+    setLoadingFiles(true);
+
+    if (mediaData?.length >= 1) {
+      blobUrlToFile(mediaData[0], "single").then((files) => {
+        setSingleFile([files]);
+      });
+    } else if (tinyurlVideo?.length >= 1) {
+      blobUrlToFile({ url: tinyurlVideo[0] }, "single", "mp4").then((files) =>
+        setSingleFile([files])
+      );
+    } else if (getTextForShare.length > 2300) {
+      blobUrlToFile(
+        {
+          url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
+        },
+        "general"
+      ).then((files) => setSingleFile([files]));
+    }
+
+    Promise.all([
+      ...tinyurlVideo.map((obj, index) =>
+        blobUrlToFile({ url: obj }, index, "mp4")
+      ),
+      ...mediaData.map((obj, index) => blobUrlToFile(obj, index)),
+    ])
+      .then((files) => setAllFiles(files))
+      .finally(() => setLoadingFiles(false));
+  }, [mediaData, tinyurlVideo]);
+
   return (
     <Grid
       style={{
@@ -179,9 +186,6 @@ function App() {
                 <Button type="primary" htmlType="submit">
                   Get Thread
                 </Button>
-                {/* <Button htmlType="button" onClick={onFill}>
-                  Test Me
-                </Button> */}
               </Space>
             </Form.Item>
           </Form>
@@ -204,19 +208,37 @@ function App() {
                           type="link"
                           htmlType="button"
                           onClick={() => onShare("text")}
+                          loading={loadingFiles}
                         >
-                          {`Share ${mediaData?.length >= 2 ? "Text" : ""}`}
+                          {`Share Text${
+                            mediaData?.length > 0
+                              ? ` With ${
+                                  mediaData?.length > 1 ? "First " : ""
+                                }Image`
+                              : tinyurlVideo?.length > 0
+                              ? ` With ${
+                                  tinyurlVideo?.length > 1 ? "First " : ""
+                                }Video`
+                              : ""
+                          }`}
                         </Button>
-                        {(mediaData?.length >= 2 ||
-                          tinyurlVideo?.length >= 2) && (
+                        {(mediaData?.length > 0 ||
+                          tinyurlVideo?.length > 0) && (
                           <Button
                             icon={<ShareAltOutlined />}
                             type="link"
                             htmlType="button"
                             onClick={() => onShare("files")}
+                            loading={loadingFiles}
                           >
-                            {`Share ${mediaData?.length >= 2 ? "Images" : ""} ${
-                              tinyurlVideo?.length >= 2 ? "Videos" : ""
+                            {`Share/Download ${
+                              mediaData?.length > 0
+                                ? `${mediaData?.length} Images`
+                                : ""
+                            } ${
+                              tinyurlVideo?.length > 0
+                                ? `${tinyurlVideo?.length} Videos`
+                                : ""
                             }`}
                           </Button>
                         )}
