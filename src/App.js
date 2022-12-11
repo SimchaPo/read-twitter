@@ -1,29 +1,20 @@
 import "./App.css";
 import "antd/dist/antd.min.css";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  Button,
-  Form,
-  Input,
-  message,
-  Space,
-  Typography,
-  Row,
-  Col,
-  Spin,
-  Image,
-} from "antd";
+import { Button, message, Typography, Row, Col, Spin, Image } from "antd";
 import Grid from "antd/lib/card/Grid";
 import he from "he";
 import { config } from "./Constants";
 import { Birds } from "./Birds";
 import { ShareAltOutlined } from "@ant-design/icons";
+import { UrlForm } from "./UrlForm";
 
 const { Paragraph, Title } = Typography;
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const [loadingSingleFiles, setLoadingSingleFiles] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [data, setData] = useState("");
   const [mediaData, setMediaData] = useState([]);
@@ -32,10 +23,14 @@ function App() {
   const [name, setName] = useState();
   const [singleFile, setSingleFile] = useState([]);
   const [allFiles, setAllFiles] = useState([]);
+  const [tweetUrl, setTweetUrl] = useState();
   const serverUrl = config.url.SERVER_URL;
 
-  const handleSubmit = async (url) => {
+  const handleSubmit = useCallback(async (url) => {
     setLoading(true);
+    setTweetUrl(url);
+    setSingleFile([]);
+    setAllFiles([]);
     axios
       .get(`${serverUrl}/tcs`, {
         params: { link: url },
@@ -58,74 +53,82 @@ function App() {
       .finally(() => {
         setLoading(false);
       });
-  };
+  }, []);
 
-  const [form] = Form.useForm();
+  const getTextForShare = useMemo(
+    () =>
+      `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
+        tweetUrl?.split("?")[0]
+      }`,
+    [name, data, userName, tweetUrl]
+  );
 
-  const onFinish = (values) => {
-    handleSubmit(values["Tweet Url"]);
-    message.success("Submit success!");
-  };
-
-  const onFinishFailed = () => {
-    message.error("Submit failed!");
-  };
-
-  const blobUrlToFile = (blobUrl, index, ext = "jpg") =>
-    new Promise((resolve) => {
-      fetch(blobUrl.url).then((res) => {
-        res.blob().then((blob) => {
-          const file = new File([blob], `${index}.${ext}`, { type: blob.type });
-          resolve(file);
+  const blobUrlToFile = useCallback(
+    (blobUrl, index, ext = "jpg") =>
+      new Promise((resolve) => {
+        fetch(blobUrl?.url).then((res) => {
+          res.blob().then((blob) => {
+            const file = new File([blob], `${index}.${ext}`, {
+              type: blob.type,
+            });
+            resolve(file);
+          });
         });
-      });
-    });
+      }),
+    []
+  );
 
-  async function onShare(type) {
-    const title = document.title;
-    let text;
-    let files = [];
-    if (type === "text") {
-      text = getTextForShare;
+  const onShare = useCallback(
+    async (type) => {
+      const title = document.title;
+      let text;
+      let files = [];
+      if (type === "text") {
+        text = getTextForShare;
 
-      files = singleFile;
-    }
-    if (type === "files") {
-      files = allFiles;
-    }
-    try {
-      let shareObj = {
-        // title,
-        text,
-        files,
-      };
-      await navigator.share(shareObj);
-    } catch (err) {}
-  }
-
-  const getTextForShare = `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
-    form.getFieldValue("Tweet Url")?.split("?")[0]
-  }`;
+        files = singleFile;
+      }
+      if (type === "files") {
+        files = allFiles;
+      }
+      try {
+        let shareObj = {
+          title,
+          text,
+          files,
+        };
+        await navigator.share(shareObj);
+      } catch (err) {}
+    },
+    [getTextForShare, singleFile, allFiles]
+  );
 
   useEffect(() => {
     setLoadingFiles(true);
+    setLoadingSingleFiles(true);
 
+    let blobUrl,
+      index,
+      ext = "jpg";
     if (mediaData?.length >= 1) {
-      blobUrlToFile(mediaData[0], "single").then((files) => {
-        setSingleFile([files]);
-      });
+      blobUrl = mediaData[0];
+      index = "single";
     } else if (tinyurlVideo?.length >= 1) {
-      blobUrlToFile({ url: tinyurlVideo[0] }, "single", "mp4").then((files) =>
-        setSingleFile([files])
-      );
+      blobUrl = { url: tinyurlVideo[0] };
+      index = "single";
+      ext = "mp4";
     } else if (getTextForShare.length > 2300) {
-      blobUrlToFile(
-        {
-          url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
-        },
-        "general"
-      ).then((files) => setSingleFile([files]));
+      blobUrl = {
+        url: "https://pbs.twimg.com/profile_images/1525820610860941313/SrnHe2N1_400x400.jpg",
+      };
+      index = "general";
+    } else {
+      setLoadingSingleFiles(false);
     }
+    if (blobUrl)
+      blobUrlToFile(blobUrl, index, ext)
+        .then((files) => setSingleFile([files]))
+        .finally(() => setLoadingSingleFiles(false));
 
     Promise.all([
       ...tinyurlVideo.map((obj, index) =>
@@ -155,40 +158,7 @@ function App() {
 
       <Row>
         <Col span={24}>
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            onFinishFailed={onFinishFailed}
-            autoComplete="off"
-          >
-            <Form.Item
-              name="Tweet Url"
-              label="Main Tweet URL"
-              rules={[
-                {
-                  required: true,
-                },
-                {
-                  type: "url",
-                  warningOnly: true,
-                },
-                {
-                  type: "string",
-                  min: 6,
-                },
-              ]}
-            >
-              <Input placeholder="insert main tweet url" allowClear />
-            </Form.Item>
-            <Form.Item>
-              <Space>
-                <Button type="primary" htmlType="submit">
-                  Get Thread
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
+          <UrlForm handleSubmit={handleSubmit} />
         </Col>
       </Row>
 
@@ -208,7 +178,7 @@ function App() {
                           type="link"
                           htmlType="button"
                           onClick={() => onShare("text")}
-                          loading={loadingFiles}
+                          loading={loadingSingleFiles}
                         >
                           {`Share Text${
                             mediaData?.length > 0

@@ -1,18 +1,16 @@
 require("dotenv").config();
-
-var express = require("express");
-var path = require("path");
 require("twitter-url-direct");
-const tinyurl = require("tinyurl-api");
 
-var app = express();
-var cors = require("cors");
+const path = require("path");
+const cors = require("cors");
+const needle = require("needle");
+const express = require("express");
+
+const app = express();
 
 app.use(cors());
 
 app.use(express.static("public"));
-
-const needle = require("needle");
 
 app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -23,15 +21,39 @@ app.use(function (req, res, next) {
   next();
 });
 
+app.use(express.static(path.join(__dirname, "../build")));
+
+app.use(express.static("dist"));
+
+app.listen(8080, function () {
+  console.log("Example app listening on port 8080!");
+});
+
+app.get("/", function (req, res) {
+  res.send("Welcome Home");
+});
+
+app.get("/tcs", async function (req, res) {
+  try {
+    let response = await getRequest(req.query.link);
+    res.send(response);
+  } catch (error) {
+    console.error(error);
+    res.status(400).send();
+  }
+});
+
+// Handle 404 - Keep this as a last route
+app.use(function (req, res, next) {
+  res.status(404);
+  res.send("404: File Not Found");
+});
+
 const token = process.env.BEARER_TOKEN;
 
 const endpointURLTweets = "https://api.twitter.com/2/tweets";
 
 const endpointURLSearch = `https://api.twitter.com/2/tweets/search/recent`;
-
-const getTweetUrl = (username, id) => {
-  return `https://twitter.com/${username}/status/${id}`;
-};
 
 async function getRequest(link) {
   console.log(link);
@@ -116,8 +138,6 @@ async function getRequest(link) {
     tinyurlVideo
   );
 
-  // text.unshift(firstRes.body?.data?.text);
-
   text = text.join("\n\n");
 
   if (res.body) {
@@ -133,33 +153,6 @@ async function getRequest(link) {
   }
 }
 
-app.get("/", function (req, res) {
-  res.send("Welcome Home");
-});
-
-app.get("/tcs", async function (req, res) {
-  // console.log(req.query);
-  try {
-    let response = await getRequest(req.query.link);
-    res.send(response);
-  } catch (error) {
-    console.error(error);
-    res.status(400).send();
-  }
-});
-
-// Handle 404 - Keep this as a last route
-app.use(function (req, res, next) {
-  res.status(404);
-  res.send("404: File Not Found");
-});
-
-app.use(express.static(path.join(__dirname, "../build")));
-app.use(express.static("dist"));
-
-app.listen(8080, function () {
-  console.log("Example app listening on port 8080!");
-});
 async function manageElement(
   element,
   username,
@@ -184,14 +177,11 @@ async function manageElement(
       if (videoUrl.found && videoUrl.type.includes("video")) {
         if (videoUrl.download?.[0]?.url) {
           tinyurlVideo.push(videoUrl.download?.[0]?.url);
-          // const url = await tinyurl(videoUrl.download?.[0]?.url);
-          // let downloadText = `(Download attached video:\n${url} )`;
-          // text.unshift(downloadText);
         }
       }
     }
   }
-  // console.log(elemen\t, element.entities?.urls);
+
   const urls = element?.entities?.urls;
   urls?.forEach((url) => {
     element.text = element.text.replace(
@@ -201,3 +191,7 @@ async function manageElement(
   });
   text.unshift(element.text);
 }
+
+const getTweetUrl = (username, id) => {
+  return `https://twitter.com/${username}/status/${id}`;
+};
