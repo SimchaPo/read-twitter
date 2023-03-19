@@ -9,6 +9,7 @@ import { config } from "./Constants";
 import { Birds } from "./Birds";
 import { ShareAltOutlined } from "@ant-design/icons";
 import { UrlForm } from "./UrlForm";
+import { createCanvas, loadImage } from "canvas";
 
 const { Paragraph, Title } = Typography;
 
@@ -67,11 +68,33 @@ function App() {
     (blobUrl, index, ext = "jpg") =>
       new Promise((resolve) => {
         fetch(blobUrl?.url).then((res) => {
-          res.blob().then((blob) => {
-            const file = new File([blob], `${index}.${ext}`, {
-              type: blob.type,
-            });
-            resolve(file);
+          res.blob().then(async (blob) => {
+            if (ext === "jpg") {
+              const image = await loadImage(URL.createObjectURL(blob));
+              // Create a canvas and draw the image
+              const canvas = createCanvas(image.width, image.height);
+              const context = canvas.getContext("2d");
+              context.drawImage(image, 0, 0);
+
+              // Add the watermark
+              context.font = "30px Arial";
+              context.fillStyle = "rgba(0, 0, 0, 0.5)";
+              context.fillText("Simcha's Bot", 50, 50);
+
+              // Convert the canvas to a blob
+              await canvas.toBlob((watermarkedBlob) => {
+                const file = new File([watermarkedBlob], `${index}.${ext}`, {
+                  type: blob.type,
+                });
+                resolve(file);
+              });
+            } else {
+              const file = new File([blob], `${index}.${ext}`, {
+                type: blob.type,
+              });
+              resolve(file);
+            }
+            // `watermarkedBlob` now contains the watermarked image
           });
         });
       }),
@@ -83,20 +106,24 @@ function App() {
       const title = document.title;
       let text;
       let files = [];
+      let shareObj;
       if (type === "text") {
         text = getTextForShare;
 
         files = singleFile;
-      }
-      if (type === "files") {
-        files = allFiles;
-      }
-      try {
-        let shareObj = {
+        shareObj = {
           title,
           text,
           files,
         };
+      }
+      if (type === "files") {
+        files = allFiles;
+        shareObj = {
+          files,
+        };
+      }
+      try {
         await navigator.share(shareObj);
       } catch (err) {}
     },

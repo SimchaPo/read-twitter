@@ -1,5 +1,5 @@
 require("dotenv").config();
-require("twitter-url-direct");
+const twitterGetUrl = require("twitter-url-direct");
 
 const path = require("path");
 const cors = require("cors");
