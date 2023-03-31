@@ -2,41 +2,6 @@
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @import url("https://fonts.googleapis.com/css?family=Arima+Madurai:300");
 
 *,
@@ -47,7 +12,7 @@
 }
 
 .bird {
-  background-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/174479/bird-cells-new.svg);
+  background-image: url(./bird-cells-new.svg);
   background-size: auto 100%;
   width: 88px;
   height: 125px;
@@ -182,10 +147,4 @@
   100% {
     transform: translateY(0vh) translateX(110vw) scale(0.45);
   }
-}
-
-.background-img {
-  background-image: url("./../public/logo.png");
-  background-size: contain;
-  opacity: 0.5;
 }

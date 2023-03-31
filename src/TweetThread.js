@@ -4,9 +4,6 @@ import { ShareAltOutlined } from "@ant-design/icons";
 import { createCanvas, loadImage } from "canvas";
 
 const TweetThread = ({ data, mediaData, tinyurlVideo, getTextForShare }) => {
-  useEffect(() => {
-    console.log(data);
-  }, [data]);
   const [loadingSingleFiles, setLoadingSingleFiles] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [singleFile, setSingleFile] = useState([]);
