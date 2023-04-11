@@ -36,6 +36,8 @@ function App() {
           settinyurlVideo(res.data.tinyurlVideo);
           setUserName(res.data.username);
           setName(res.data.name);
+          if (res.data.errorMessage?.length > 0)
+            message.error(res.data.errorMessage);
         })
         .catch(() => {
           setData("");

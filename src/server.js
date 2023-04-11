@@ -90,6 +90,8 @@ async function getRequest(link) {
 
   let tinyurlVideo = [];
 
+  let errorMessage = [];
+
   params = {
     query: `conversation_id:${twittId} from:${username} to:${username}`,
     expansions: "author_id,attachments.media_keys",
@@ -117,7 +119,8 @@ async function getRequest(link) {
           urlsForVideos,
           text,
           res.body?.includes?.media,
-          tinyurlVideo
+          tinyurlVideo,
+          errorMessage
         );
       }
 
@@ -135,7 +138,8 @@ async function getRequest(link) {
     urlsForVideos,
     text,
     firstRes.body?.includes?.media,
-    tinyurlVideo
+    tinyurlVideo,
+    errorMessage
   );
 
   text = text.join("\n\n");
@@ -147,6 +151,7 @@ async function getRequest(link) {
       username,
       name,
       tinyurlVideo,
+      errorMessage,
     };
   } else {
     throw new Error("Unsuccessful request");
@@ -159,7 +164,8 @@ async function manageElement(
   urlsForVideos,
   text,
   media = null,
-  tinyurlVideo
+  tinyurlVideo,
+  errorMessage
 ) {
   if (element.attachments) {
     const media_keys = element.attachments.media_keys;
@@ -173,11 +179,18 @@ async function manageElement(
         media_keys: element.attachments.media_keys,
         tweetUrl,
       });
-      let videoUrl = await twitterGetUrl(tweetUrl);
-      if (videoUrl.found && videoUrl.type.includes("video")) {
-        if (videoUrl.download?.[0]?.url) {
-          tinyurlVideo.push(videoUrl.download?.[0]?.url);
+      try {
+        let videoUrl = await twitterGetUrl(tweetUrl);
+        if (videoUrl.found && videoUrl.type.includes("video")) {
+          if (videoUrl.download?.[0]?.url) {
+            tinyurlVideo.push(videoUrl.download?.[0]?.url);
+          }
         }
+      } catch (error) {
+        console.error({ error });
+        errorMessage.push(
+          "Extracting Video Server Failed With Message: " + error.error
+        );
       }
     }
   }
