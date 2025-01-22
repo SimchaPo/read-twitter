@@ -9,7 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^4.22.8",
     "axios": "^0.27.2",
-    "canvas": "^2.11.0",
+    "canvas": "^2.11.2",
     "cors": "^2.8.5",
     "got": "^12.3.1",
     "he": "^1.2.0",
