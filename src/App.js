@@ -16,6 +16,7 @@ const { Title } = Typography;
 function App() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState("");
+  const [createdAt, setCreatedAt] = useState();
   const [mediaData, setMediaData] = useState([]);
   const [tinyurlVideo, settinyurlVideo] = useState([]);
   const [userName, setUserName] = useState();
@@ -33,6 +34,18 @@ function App() {
         })
         .then((res) => {
           setData(he.decode(res.data.text));
+          let formattedDate = new Date(res.data.created_at).toLocaleString(
+            "en-GB",
+            {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            }
+          );
+          setCreatedAt(formattedDate);
           setMediaData(res.data.mediaData);
           settinyurlVideo(res.data.tinyurlVideo);
           setUserName(res.data.username);
@@ -40,13 +53,16 @@ function App() {
           if (res.data.errorMessage?.length > 0)
             message.error(res.data.errorMessage);
         })
-        .catch(() => {
+        .catch((e) => {
+          console.error(e);
           setData("");
+          setCreatedAt();
           setMediaData([]);
           settinyurlVideo([]);
           setUserName();
           setName();
-          message.error("Problem with URL");
+          let errorMessage = e.response?.data?.error;
+          message.error(errorMessage || "An error occurred");
         })
         .finally(() => {
           setLoading(false);
@@ -57,15 +73,15 @@ function App() {
 
   const getTextForShare = useMemo(
     () =>
-      `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${data}\n\n${
+      `Extracted By Simcha's Bot\nhttps://read-twitter-project.uc.r.appspot.com/\n\n${name} (@${userName})\n\n${createdAt}\n${data}\n\n${
         tweetUrl?.split("?")[0]
       }`,
-    [name, data, userName, tweetUrl]
+    [name, data, userName, tweetUrl, createdAt]
   );
 
   useEffect(() => {
     message.warning(
-      "Due to Twitter's increased API costs, this application may cease functioning once my access is blocked. I apologize for any inconvenience and appreciate your support thus far. You can follow me on LinkedIn for future project updates. Thank you for your understanding."
+      "X allows us to process one thread every 15 minutes. Please be patient."
     );
   }, []);
 
@@ -98,6 +114,7 @@ function App() {
               <Spin />
             ) : (
               <TweetThread
+                createdAt={createdAt}
                 data={data}
                 mediaData={mediaData}
                 tinyurlVideo={tinyurlVideo}

@@ -39,7 +39,7 @@ app.get("/tcs", async function (req, res) {
     res.send(response);
   } catch (error) {
     console.error(error);
-    res.status(400).send();
+    res.status(400).send({ error: error.message });
   }
 });
 
@@ -82,7 +82,13 @@ async function getRequest(link) {
     }
   );
 
-  let { name, username } = firstRes.body.includes?.users?.[0];
+  console.log(firstRes.body);
+
+  if (firstRes.body.status === 429) {
+    throw new Error(`${firstRes.body.detail || ""} - wait 15 minutes`);
+  }
+
+  let { name, username } = firstRes.body.includes?.users?.[0] || {};
 
   let urlsForVideos = [];
 
@@ -100,6 +106,7 @@ async function getRequest(link) {
     "media.fields": "preview_image_url,type,url",
   };
 
+  let created_at = firstRes.body?.data?.created_at;
   let text = [];
   let mediaUrls = [];
   let res;
@@ -111,6 +118,9 @@ async function getRequest(link) {
         authorization: `Bearer ${token}`,
       },
     });
+
+    console.log(res.body);
+
     if (res.body?.data)
       for (const element of res.body?.data) {
         await manageElement(
@@ -146,6 +156,7 @@ async function getRequest(link) {
 
   if (res.body) {
     return {
+      created_at,
       text,
       mediaData: mediaUrls.filter((media) => media.url),
       username,
@@ -167,7 +178,7 @@ async function manageElement(
   tinyurlVideo,
   errorMessage
 ) {
-  if (element.attachments) {
+  if (false && element.attachments) {
     const media_keys = element.attachments.media_keys;
     const video_media_keys = media
       .filter((med) => med.type === "video")

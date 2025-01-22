@@ -3,7 +3,13 @@ import { Button, Row, Col, Image, Typography } from "antd";
 import { ShareAltOutlined } from "@ant-design/icons";
 import { createCanvas, loadImage } from "canvas";
 
-const TweetThread = ({ data, mediaData, tinyurlVideo, getTextForShare }) => {
+const TweetThread = ({
+  createdAt,
+  data,
+  mediaData,
+  tinyurlVideo,
+  getTextForShare,
+}) => {
   const [loadingSingleFiles, setLoadingSingleFiles] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [singleFile, setSingleFile] = useState([]);
@@ -152,6 +158,10 @@ const TweetThread = ({ data, mediaData, tinyurlVideo, getTextForShare }) => {
                   </Button>
                 )}
               </Row>
+              <Row>
+                <Typography.Title level={5}>{createdAt}</Typography.Title>
+              </Row>
+
               <Row>
                 <Typography.Paragraph
                   copyable={{
